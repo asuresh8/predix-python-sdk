@@ -1,7 +1,13 @@
-## Predix SDK
+# Predix SDK
 
+## Install
+```shell
+$ pip install predix
+```
+
+
+## Documentation
 ### Security
-
 #### User Account Authentication
 ```python
 # import package
