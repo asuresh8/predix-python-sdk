@@ -1,6 +1,6 @@
 import requests
 import yaml
-from ge.data.utilities import get_proxy
+from predix import get_proxy
 import json
 
 class UserAccountAuthentication:
@@ -248,7 +248,7 @@ class AccessControlService:
                          headers=self.headers,
                          data=subject)
         r.raise_for_status()
-    
+
     def get_policies(self):
         r = requests.get(self.url + '/policy-set/',
                          proxies=get_proxy(),
@@ -278,4 +278,3 @@ class AccessControlService:
 
 class DataIntegrityAssurance:
     pass
-

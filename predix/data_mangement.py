@@ -9,8 +9,7 @@ import yaml
 import redis
 import boto3
 import os
-from ge.data.sql import PostgreSQL
-from ge.data.utilities import get_proxy
+from predix import get_proxy
 
 
 class AssetData:
@@ -135,7 +134,186 @@ class KeyValueStore(redis.StrictRedis):
 
 class SQLDatabase(PostgreSQL):
     def __init__(self, host, database, user, password):
-        PostgreSQL.__init__(self, host=host, database=database, user=user, password=password)
+        self.db = psycopg2.connect(host=host, database=database, user=user, password=password)
+
+    # create table
+    # connect_string:  <user>/<password>@<hostname>/<service name>
+    # table: table name
+    # new_output_data: list of rows of test_data
+    # new_output_headers: list of headers corresponding to list of rows
+    # unique_name: constraint name
+    # unique_terms: unique column constraint
+    def create(self, table, new_output_data, new_output_headers, unique_name=None, unique_terms=None):
+        data, headers = transform_data_structure(new_output_data, new_output_headers)
+        cursor = self.db.cursor()
+        create_terms = []
+
+        for index, element in enumerate(data[0]):
+            create_terms.append(headers[index].upper() + " " + _get_postgres_type(element))
+
+        create_statement = "CREATE TABLE " + table + "( " + ", ".join(create_terms)
+        if unique_name is not None and unique_terms is not None:
+            create_statement += ", CONSTRAINT " + unique_name + " UNIQUE " + str(tuple(unique_terms)) + ");"
+        else:
+            create_statement += ")"
+
+        print create_statement
+        cursor.execute(create_statement)
+        self.insert(table, data, headers)
+        self.db.commit()
+        cursor.close()
+        self.db.close()
+
+    # drop table from Oracle database
+    # connect_string:  <user>/<password>@<hostname>/<service name>
+    # table: table name
+    # cascade_constraints: delete attached constraints?
+    # purge: purge test_data in database?
+    def drop(self, table, cascade_constraints=True, purge=True):
+        cursor = self.db.cursor()
+        drop_statement = "DROP TABLE " + table
+        if cascade_constraints:
+            drop_statement += " CASCADE CONSTRAINTS"
+
+        if purge:
+            drop_statement += " PURGE"
+
+        drop_statement += ";"
+        cursor.execute(drop_statement)
+        self.db.commit()
+        cursor.close()
+        self.db.close()
+
+    def execute(self, statement):
+        cursor = self.db.cursor()
+        output = None
+        cursor.execute(statement)
+        if 'SELECT' in statement:
+            output = cursor.fetchall()
+        self.db.commit()
+        cursor.close()
+        self.db.close()
+        if output is not None:
+            return output
+
+    # insert row into table
+    # connect_string:  <user>/<password>@<hostname>/<service name>
+    # table: table name
+    # new_output_data: list of rows of test_data
+    # new_output_headers: list of headers corresponding to list of rows
+    def insert(self, table, new_output_data, new_output_headers):
+        data, headers = transform_data_structure(new_output_data, new_output_headers)
+        cursor = self.db.cursor()
+        new_headers = []
+        new_header_string = ", ".join(headers)
+        for row in data:
+            new_values = []
+            for index, header in enumerate(headers):
+                if _get_postgres_type(row[index]) == "DATE":
+                    new_values.append("TO_TIMESTAMP('" + row[index].strftime("%m/%d/%Y")+"', 'MM/DD/YYYY')")
+                elif _get_postgres_type(row[index]) == "TIMESTAMP":
+                    new_values.append("TO_TIMESTAMP('" + row[index].strftime("%m/%d/%Y %H:%M:%S") + "', 'MM/DD/YYYY HH24:MI:SS')")
+                elif _get_postgres_type(row[index]) == 'JSONB':
+                    new_values.append("'" + json.dumps(row[index]) + "'")
+                else:
+                    new_values.append("'" + str(row[index]) + "'")
+
+            insert_statement = "INSERT INTO " + table + " (" + new_header_string + ") VALUES (" + ", ".join(
+                new_values) + ")"
+            cursor.execute(insert_statement)
+
+        self.db.commit()
+        cursor.close()
+        self.db.close()
+
+    # select row from table
+    # connect_string:  <user>/<password>@<hostname>/<service name>
+    # select_variables: variables to select
+    # table: table name
+    # filters: filters containing the WHERE clause
+    def select(self, select_variables, table, filters):
+        if type(select_variables).__name__ == 'str':
+            select_variables = [select_variables]
+
+        cursor = self.db.cursor()
+        select_keys = []
+        select_values = []
+        running_index = 1
+        for key in filters:
+            value = filters[key]
+            if type(value).__name__ in ["tuple", "list"]:
+                select_key = key + " IN ("
+                value = clean_escape_characters(value)
+                select_key += ", ".join(value) + ")"
+                select_keys.append(select_key)
+            else:
+                if _get_postgres_type(value) == "DATE":
+                    select_keys.append(key + " = TO_TIMESTAMP('" + value.strftime("%m/%d/%Y") + "', 'MM/DD/YYYY')")
+                elif _get_postgres_type(value) == "TIMESTAMP":
+                    select_keys.append(key + " = TO_TIMESTAMP(:'" + value.strftime(
+                        "%m/%d/%Y %H:%M:%S") + "', 'MM/DD/YYYY HH24:MI:SS')")
+                elif _get_postgres_type(value) == 'JSONB':
+                    select_keys.append(key + " = '" + json.dumps(value) + "'")
+                else:
+                    select_keys.append(key + " = '" + str(value) + "'")
+
+                select_values.append(str(value))
+                running_index += 1
+
+        select_statement = "SELECT DISTINCT " + ", ".join(
+            select_variables) + " FROM " + table + " WHERE " + " AND ".join(select_keys)
+        cursor.execute(select_statement)
+        output = cursor.fetchall()
+        self.db.commit()
+        cursor.close()
+        self.db.close()
+        return output
+
+    # update row in table
+    # connect_string:  <user>/<password>@<hostname>/<service name>
+    # table: table name
+    # pk_id: id of primary key
+    # pk_value: value of primary key
+    # new_output_data: list of rows of test_data
+    # new_output_headers: list of headers corresponding to list of rows
+    def update(self, table, new_output_data, new_output_headers, select_data, select_headers):
+        data, headers = transform_data_structure(new_output_data, new_output_headers)
+        where_data, where_headers = transform_data_structure(select_data, select_headers)
+        cursor = self.db.cursor()
+        for row in data:
+            update_strings = []
+            for index, header in enumerate(headers):
+                if _get_postgres_type(row[index]) == "DATE":
+                    update_strings.append(
+                        str(header) + " = TO_DATE('" + row[index].strftime('%m/%d/%Y') + "', 'MM/DD/YYYY')")
+                elif _get_postgres_type(row[index]) == "TIMESTAMP":
+                    update_strings.append(str(header) + " = TO_TIMESTAMP('" + row[index].strftime(
+                        "%m/%d/%Y %H:%M:%S") + "', 'MM/DD/YYYY HH24:MI:SS')")
+                elif _get_postgres_type(row[index]) == 'JSONB':
+                    update_strings.append(str(header) + " = '" + json.dumps(row[index]) + "'")
+                else:
+                    update_strings.append(str(header) + " = '" + str(row[index]) + "'")
+            where_strings = []
+            for index, header in enumerate(where_headers):
+                if _get_postgres_type(where_data[0][index]) == "DATE":
+                    where_strings.append(str(header) + " = TO_DATE(" + where_data[0][index] + ", 'MM/DD/YYYY')")
+                elif _get_postgres_type(where_data[0][index]) == "TIMESTAMP":
+                    where_strings.append(
+                        str(header) + " = TO_TIMESTAMP(" + where_data[0][index] + ", 'MM/DD/YYYY HH24:MI:SS')")
+                elif _get_postgres_type(where_data[0][index]) == "NUMBER":
+                    where_strings.append(str(header) + " = " + where_data[0][index])
+                elif _get_postgres_type(where_data[0][index]) == 'JSONB':
+                    where_strings.append(str(header) + " = '" + json.dumps(where_data[0][index]) + "'")
+                else:
+                    where_strings.append(str(header) + " = '" + where_data[0][index] + "'")
+
+            update_statement = "UPDATE " + table + " SET " + ", ".join(update_strings) + " WHERE " + " AND ".join(
+                where_strings)
+            cursor.execute(update_statement, tuple(row))
+
+        self.db.commit()
+        cursor.close()
+        self.db.close()
 
 
 class Blobstore:
@@ -161,4 +339,19 @@ def _combine(a):
         return "&".join(terms_of_length)
 
 
-
+def _get_postgres_type(variable):
+    if type(variable).__name__ in ['int', 'float', 'long', 'complex']:
+        return "NUMERIC"
+    elif type(variable).__name__ in ["datetime", "date"]:
+        return "TIMESTAMP"
+    elif type(variable).__name__ == "str":
+        return "VARCHAR(255)"
+    elif type(variable).__name__ == "bool":
+        return "BOOLEAN"
+    elif type(variable).__name__ == 'dict':
+        return 'JSONB'
+    else:
+        print variable
+        print type(variable).__name__
+        raise Exception("Invalid test_data type. Supported test_data Types are numbers, datetime.datetime, "
+                        "datetime.date, strings, boolean and dictionaries (binary json)")

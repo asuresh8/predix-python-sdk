@@ -6,7 +6,7 @@ import base64
 import requests
 import yaml
 import json
-from ge.data.utilities import get_proxy
+from predix import get_proxy
 
 
 class GeoEnhance:

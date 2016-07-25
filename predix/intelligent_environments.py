@@ -4,7 +4,7 @@ module ge.predix.intelligent_planning
 import requests
 import yaml
 import json
-from ge.data.utilities import get_proxy
+from predix import get_proxy
 
 
 class _CurrentSystem:
@@ -24,7 +24,7 @@ class _CurrentSystem:
         if q_type is not None and q_value is not None:
             if q_type not in ['device-type', 'media-type', 'event-type']:
                 raise Exception('invalid q type')
-            
+
             elif q_type == 'device-type':
                 if type(q_value) in ['list', 'tuple']:
                     if any(q_value) not in ['NODE', 'CAMERA', 'MIC', 'ENV']:
@@ -50,7 +50,7 @@ class _CurrentSystem:
                     raise Exception('Invalid q value for media-type')
                 else:
                     params['q'] = 'media-type:' + q_value
-                
+
             elif q_type == 'event-type':
                 if type(q_value) in ['list', 'tuple']:
                     if any(q_value) not in ['PKIN', 'PKOUT', 'SFIN', 'SFOUT', 'TFEVT', 'ENCGH'
@@ -88,7 +88,7 @@ class _CurrentSystem:
         params = {}
         if type(event_types) in ['list', 'tuple']:
             for event_type in event_types:
-                if event_type not in ['PKIN', 'PKOUT', 'SFIN', 'SFOUT', 'TFEVT', 'ENCGH', 
+                if event_type not in ['PKIN', 'PKOUT', 'SFIN', 'SFOUT', 'TFEVT', 'ENCGH',
                                       'TEMP', 'OCCUPANCY', 'LIGHT_LEVEL']:
                     raise Exception('Invalid Event Type')
             params['event-types'] = ','.join(event_types)
@@ -190,7 +190,7 @@ class _CurrentSystem:
             params['analytic-names'] = ';'.join(analytic_names)
         elif type(analytic_names).__name__ =='str':
             params['analytic-names'] = analytic_names
-        
+
         if type(analytic_categories).__name__ in ['list', 'tuple']:
             params['analytic-categories'] = ';'.join(analytic_categories)
         elif type(analytic_categories).__name__ =='str':
@@ -233,4 +233,3 @@ class IndoorPositioning(_CurrentSystem):
 class EnterpriseEnvironment(_CurrentSystem):
     def __init__(self, instance_id, token, url='https://ie-environmental.run.aws-usw02-pr.ice.predix.io'):
         _CurrentSystem.__init__(self, instance_id, token, url)
-
