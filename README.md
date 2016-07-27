@@ -11,7 +11,7 @@ $ pip install predix
 #### User Account Authentication
 ```python
 # import package
-from ge.predix.security import UserAccountAuthentication
+from predix.security import UserAccountAuthentication
 # connect to instance
 uaa = UserAccountAuthentication('<url>')
 # authenticate admin
@@ -37,7 +37,7 @@ uaa.add_to_group('username', 'group_name')
 #### Tenant Management
 ```python
 # import package
-from ge.predix.security import TenantManagement
+from predix.security import TenantManagement
 # connect to instance
 tm = TenantManagement('<instance_id>', '<token>')
 # create tenant
@@ -53,7 +53,7 @@ tm.update({<tenant_data>})
 #### Access Control Service
 ```python
 # import package
-from ge.predix.security import AccessControlService
+from predix.security import AccessControlService
 # connect to instance
 acs = AccessControlService('<instance_id>', '<token>')
 # get resources
@@ -89,7 +89,7 @@ acs.update_policy_set('<policy_set_id>', policy_set)
 #### Geo Enhance
 ```python
 # import package
-from ge.predix.geospatial_services import GeoEnhance
+from predix.geospatial_services import GeoEnhance
 # create instance
 geo = GeoEnhance('<instance_id>', '<token>')
 # find address by Location
@@ -105,7 +105,7 @@ timezone = geo.timezone_by_location('<lat>', '<lon>')
 #### Smart World Intelligent Mapping
 ```python
 # import package
-from ge.predix.geospatial_services import SmartWorldIntelligentMapping
+from predix.geospatial_services import SmartWorldIntelligentMapping
 # create instance
 smart_map = ('<instance_id>', '<token>')
 # get collections
@@ -124,7 +124,7 @@ smart_map.text_query('<name>', '<text>')
 *All classes have the same functions in the current version of Predix*
 ```python
 # import package
-from ge.predix.intelligent_envrionments import TrafficPlanning, ParkingPlanning, PedestrianPlanning, PublicSafety, IndoorPositioning, EnterpriseEnvironment
+from predix.intelligent_envrionments import TrafficPlanning, ParkingPlanning, PedestrianPlanning, PublicSafety, IndoorPositioning, EnterpriseEnvironment
 # connect to instance
 current_system = TrafficPlanning('<instance_id>', '<token>')
 # get assets
@@ -154,7 +154,7 @@ analysis = get_location_analytics('<location_id>', [<analytic_names>], [<analyti
 #### Asset Data
 ```python
 # import package
-from ge.predix.data_management import AssetData
+from predix.data_management import AssetData
 # connect to database
 db = AssetData('<instance_id>', '<uaa_token>')
 # post to database
@@ -170,7 +170,7 @@ audit_data = db.audit(filters={<filters>}, page_size=<page_size>)
 #### Time Series
 ```python
 # import package
-from ge.predix.data_management import TimeSeries
+from predix.data_management import TimeSeries
 # connect to database
 db = TimeSeries('<instance_id>', '<uaa_token>')
 # ingest data
@@ -182,7 +182,7 @@ data = db.query({<query>})
 #### Message Queue
 ```python
 # import package
-from ge.predix.data_management import MessageQueue
+from predix.data_management import MessageQueue
 # create instance
 ampq = MessageQueue('<host>')
 # send message
@@ -195,7 +195,7 @@ ampq.receive(<callback_function>, '<queue>')
 #### Key Value Store
 ```python
 # import package
-from ge.predix.data_management import KeyValueStore
+from predix.data_management import KeyValueStore
 # connect to instance
 redis_db = KeyValueStore(host='<host>', password='<password>', port='<port>')
 ```
@@ -204,7 +204,7 @@ redis_db = KeyValueStore(host='<host>', password='<password>', port='<port>')
 #### SQL Database
 ```python
 # import package
-from ge.predix.data_management import SQLDatabase
+from predix.data_management import SQLDatabase
 # connect to instance
 pgdb = SQLDatabase(host='<host>', database='<database>', user='<user>', password='<password>')
 ```
@@ -213,7 +213,7 @@ pgdb = SQLDatabase(host='<host>', database='<database>', user='<user>', password
 #### Blobstore
 ```python
 # import package
-from ge.predix.data_management import Blobstore
+from predix.data_management import Blobstore
 # connect to instance
 blob = Blobstore('<access_key_id>', '<secret_access_key>', '<bucket_name>')
 # put new items
