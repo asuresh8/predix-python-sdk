@@ -23,15 +23,15 @@ uaa_token = uaa.authenticate_user('<short_token>', 'username', 'password')
 # create client
 client = uaa.create_client('<client_name>', '<client_secret>')
 # create user
-user = uaa.create_user('username', 'password', 'email')
+user = uaa.create_user('<username>', '<password>', '<email>')
 # get user
-user = uaa.get_user('username')
+user = uaa.get_user('<username>')
 # create group
 group = uaa.create('<group>')
 # get group
 group = uaa.get_group('<group>')
 # add_to_group
-uaa.add_to_group('username', 'group_name')
+uaa.add_to_group('<username>', '<group_name>')
 ```
 
 #### Tenant Management
@@ -81,7 +81,7 @@ policies = acs.get_policies()
 # delete policy
 acs.delete_policy('<policy_set_id>')
 # update policy
-acs.update_policy_set('<policy_set_id>', policy_set)
+acs.update_policy_set('<policy_set_id>', {<policy_set>})
 ```
 
 ### Geospatial services
@@ -115,7 +115,7 @@ collection = smart_map.get('<name>')
 # delete collection
 smart_map.delete('<name>')
 # spatial query
-smart_map.spatial_query('<name>', '<x1>', '<x2>', '<y1>', '<y2>')
+smart_map.spatial_query('<name>', <x1>, <x2>, <y1>, <y2>)
 # text query
 smart_map.text_query('<name>', '<text>')
 ```
